@@ -2,8 +2,8 @@
 
 function StatIcon({ name }: { name: string }) {
   const common = {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
@@ -19,12 +19,6 @@ function StatIcon({ name }: { name: string }) {
           <circle cx="12" cy="12" r="9" />
           <path d="M8 14c1 1.3 2.4 2 4 2s3-.7 4-2" />
           <path d="M9 9h.01M15 9h.01" />
-        </svg>
-      );
-    case "streak":
-      return (
-        <svg {...common}>
-          <path d="M12 2.5c1.5 2.5-1 4-1 6.5a2.5 2.5 0 0 0 5 0c1.6 1.6 2.5 3.5 2.5 5.5a6.5 6.5 0 0 1-13 0c0-3.5 2-5.5 3.5-7.5z" />
         </svg>
       );
     case "journal":
@@ -47,50 +41,62 @@ function StatIcon({ name }: { name: string }) {
 }
 
 export interface StatsCardProps {
-  icon: "mood" | "streak" | "journal" | "meditation";
+  icon: "mood" | "journal" | "meditation";
   label: string;
   value: string;
+  caption?: string;
 }
 
-export default function StatsCard({ icon, label, value }: StatsCardProps) {
+export default function StatsCard({ icon, label, value, caption }: StatsCardProps) {
   return (
     <>
       <style>{`
         .stats-card {
           background: #ffffff;
           border: 1px solid #e8eaed;
-          border-radius: 16px;
-          padding: 1.3rem 1.4rem;
+          border-radius: 18px;
+          padding: 1.4rem 1.5rem;
           display: flex;
           flex-direction: column;
-          gap: 0.9rem;
+          justify-content: space-between;
+          gap: 1.2rem;
+          height: 100%;
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-          transition: box-shadow 0.2s, border-color 0.2s;
+          transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
         }
         .stats-card:hover {
           border-color: #d8dde2;
-          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+          transform: translateY(-2px);
         }
 
         .stats-icon {
-          width: 42px; height: 42px;
-          border-radius: 11px;
-          background: rgba(22, 163, 74, 0.08);
+          width: 38px; height: 38px;
+          border-radius: 10px;
+          background: #f0fdf4;
           color: #16a34a;
           display: flex; align-items: center; justify-content: center;
         }
 
         .stats-value {
           font-family: 'DM Serif Display', serif;
-          font-size: 1.6rem;
+          font-size: 1.9rem;
           color: #0f172a;
           letter-spacing: -0.02em;
+          line-height: 1;
         }
 
         .stats-label {
           font-size: 0.8rem;
           color: #94a3b8;
-          margin-top: -0.4rem;
+          margin-top: 0.3rem;
+        }
+
+        .stats-caption {
+          font-size: 0.74rem;
+          color: #16a34a;
+          margin-top: 0.5rem;
+          font-weight: 500;
         }
       `}</style>
 
@@ -101,6 +107,7 @@ export default function StatsCard({ icon, label, value }: StatsCardProps) {
         <div>
           <div className="stats-value">{value}</div>
           <div className="stats-label">{label}</div>
+          {caption && <div className="stats-caption">{caption}</div>}
         </div>
       </div>
     </>
