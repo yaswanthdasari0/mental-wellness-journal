@@ -52,29 +52,39 @@ export default function RecentActivity() {
         .activity-card {
           background: #ffffff;
           border: 1px solid #e8eaed;
-          border-radius: 16px;
-          padding: 1.5rem 1.6rem;
-          margin-top: 2rem;
+          border-radius: 18px;
+          padding: 1.6rem 1.7rem;
+          margin-top: 1.2rem;
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          height: 100%;
         }
         .activity-title {
           font-size: 0.95rem;
           font-weight: 600;
           color: #0f172a;
-          margin-bottom: 1.2rem;
+          margin-bottom: 1.3rem;
         }
         .activity-list {
           display: flex;
           flex-direction: column;
+          position: relative;
         }
         .activity-row {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 0.9rem;
-          padding: 0.85rem 0;
-          border-top: 1px solid #f1f3f5;
+          padding-bottom: 1.2rem;
+          position: relative;
         }
-        .activity-row:first-child { border-top: none; }
+        .activity-row:last-child { padding-bottom: 0; }
+
+        .activity-row:not(:last-child)::after {
+          content: '';
+          position: absolute;
+          left: 17px; top: 36px; bottom: 0;
+          width: 1px;
+          background: #eef1f4;
+        }
 
         .activity-icon {
           width: 34px; height: 34px;
@@ -83,17 +93,17 @@ export default function RecentActivity() {
           color: #16a34a;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
+          z-index: 1;
         }
+        .activity-body { display: flex; flex-direction: column; gap: 0.2rem; padding-top: 0.2rem; }
         .activity-text {
           font-size: 0.85rem;
           color: #334155;
           font-weight: 500;
         }
         .activity-time {
-          font-size: 0.78rem;
+          font-size: 0.76rem;
           color: #94a3b8;
-          margin-left: auto;
-          flex-shrink: 0;
         }
       `}</style>
 
@@ -105,8 +115,10 @@ export default function RecentActivity() {
               <div className="activity-icon">
                 <ActivityIcon name={item.icon} />
               </div>
-              <div className="activity-text">{item.label}</div>
-              <div className="activity-time">{item.time}</div>
+              <div className="activity-body">
+                <div className="activity-text">{item.label}</div>
+                <div className="activity-time">{item.time}</div>
+              </div>
             </div>
           ))}
         </div>
