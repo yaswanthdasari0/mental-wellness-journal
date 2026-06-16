@@ -3,13 +3,13 @@
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "home" },
-  { href: "/dashboard/mood", label: "Mood Tracker", icon: "smile" },
-  { href: "/dashboard/journal", label: "Journal", icon: "book" },
-  { href: "/dashboard/gratitude", label: "Gratitude", icon: "heart" },
-  { href: "/dashboard/habits", label: "Habits", icon: "flame" },
-  { href: "/dashboard/meditation", label: "Meditation", icon: "circle" },
-  { href: "/dashboard/profile", label: "Profile", icon: "user" },
+  { href: "/dashboard",  label: "Dashboard",    icon: "home"   },
+  { href: "/mood",       label: "Mood Tracker",  icon: "smile"  },
+  { href: "/journal",    label: "Journal",       icon: "book"   },
+  { href: "/gratitude",  label: "Gratitude",     icon: "heart"  },
+  { href: "/habits",     label: "Habits",        icon: "flame"  },
+  { href: "/meditation", label: "Meditation",    icon: "circle" },
+  { href: "/profile",    label: "Profile",       icon: "user"   },
 ];
 
 function Icon({ name }: { name: string }) {
@@ -88,6 +88,13 @@ function Icon({ name }: { name: string }) {
 export default function Sidebar() {
   const pathname = usePathname();
 
+  // Checks if the current route starts with the nav item's href.
+  // e.g. /mood/history → still highlights "Mood Tracker"
+  const isActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
   return (
     <>
       <style>{`
@@ -134,16 +141,21 @@ export default function Sidebar() {
           border-left: 3px solid transparent;
           transition: background 0.15s, color 0.15s;
         }
+
+        /* Hover — same tint for every item */
         .sidebar-link:hover {
           background: #f4f6f8;
           color: #0f172a;
         }
+
+        /* Active — green left border + green tint, same for every item */
         .sidebar-link.active {
           background: rgba(22, 163, 74, 0.07);
           color: #16a34a;
           border-left-color: #16a34a;
           font-weight: 600;
         }
+
         .sidebar-link .icon-wrap {
           display: flex;
           align-items: center;
@@ -166,19 +178,16 @@ export default function Sidebar() {
         <a href="/" className="sidebar-logo">Mind<span>Space</span></a>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                className={`sidebar-link${isActive ? " active" : ""}`}
-              >
-                <span className="icon-wrap"><Icon name={item.icon} /></span>
-                {item.label}
-              </a>
-            );
-          })}
+          {NAV_ITEMS.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className={`sidebar-link${isActive(item.href) ? " active" : ""}`}
+            >
+              <span className="icon-wrap"><Icon name={item.icon} /></span>
+              {item.label}
+            </a>
+          ))}
         </nav>
 
         <div className="sidebar-footer">
