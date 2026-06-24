@@ -2,18 +2,30 @@ import { Router } from "express";
 import {
   createMood,
   getMoods,
-  getTodayMood,
+  getMoodById,
+  updateMood,
+  deleteMood,
 } from "../controllers/mood.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// POST /api/mood
+// All mood routes are protected — user must be logged in
+router.use(authMiddleware);
+
+// POST /api/moods
 router.post("/", createMood);
 
-// GET /api/mood
+// GET /api/moods
 router.get("/", getMoods);
 
-// GET /api/mood/today
-router.get("/today", getTodayMood);
+// GET /api/moods/:id
+router.get("/:id", getMoodById);
+
+// PUT /api/moods/:id
+router.put("/:id", updateMood);
+
+// DELETE /api/moods/:id
+router.delete("/:id", deleteMood);
 
 export default router;
