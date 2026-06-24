@@ -23,8 +23,8 @@ app.get("/", (_req: Request, res: Response) => {
 
 // ── Routes ──────────────────────────────────────────────
 app.use("/api/auth",      authRoutes);
-app.use("/api/mood",      moodRoutes);
-app.use("/api/journal",   journalRoutes);
+app.use("/api/moods",     moodRoutes);      // plural — /api/moods
+app.use("/api/journals",  journalRoutes);   // plural — /api/journals
 app.use("/api/gratitude", gratitudeRoutes);
 app.use("/api/habits",    habitRoutes);
 
