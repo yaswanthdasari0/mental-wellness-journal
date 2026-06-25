@@ -6,22 +6,26 @@ import {
   updateJournal,
   deleteJournal,
 } from "../controllers/journal.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// POST /api/journal
+// All journal routes are protected
+router.use(authMiddleware);
+
+// POST /api/journals
 router.post("/", createJournal);
 
-// GET /api/journal
+// GET /api/journals
 router.get("/", getJournals);
 
-// GET /api/journal/:id
+// GET /api/journals/:id
 router.get("/:id", getJournalById);
 
-// PUT /api/journal/:id
+// PUT /api/journals/:id
 router.put("/:id", updateJournal);
 
-// DELETE /api/journal/:id
+// DELETE /api/journals/:id
 router.delete("/:id", deleteJournal);
 
 export default router;
