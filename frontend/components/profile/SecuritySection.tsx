@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { clearAuth } from "@/services/auth";
 
 function LockIcon() {
   return (
@@ -27,103 +30,52 @@ function ChevronIcon() {
 }
 
 export default function SecuritySection() {
+  const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleLogout = () => {
+    clearAuth(); // clears token + user from localStorage
+    document.cookie = "mindspace_token=; path=/; max-age=0";
+    router.push("/login");
+  };
 
   return (
     <>
       <style>{`
-        .security-card {
-          background: #ffffff;
-          border: 1px solid #e8eaed;
-          border-radius: 18px;
-          overflow: hidden;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.03);
-        }
-
-        .security-header {
-          padding: 1.1rem 1.6rem;
-          border-bottom: 1px solid #f1f5f9;
-        }
-        .security-title {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #0f172a;
-        }
-
+        .security-card { background: #ffffff; border: 1px solid #e8eaed; border-radius: 18px; overflow: hidden; box-shadow: 0 1px 2px rgba(15,23,42,0.03); }
+        .security-header { padding: 1.1rem 1.6rem; border-bottom: 1px solid #f1f5f9; }
+        .security-title { font-size: 0.95rem; font-weight: 600; color: #0f172a; }
         .security-list { padding: 0.4rem 0; }
-
         .security-row {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem 1.6rem;
-          border-bottom: 1px solid #f8fafc;
-          cursor: pointer;
-          transition: background 0.15s;
+          display: flex; align-items: center; gap: 1rem; padding: 1rem 1.6rem;
+          border-bottom: 1px solid #f8fafc; cursor: pointer; transition: background 0.15s;
         }
         .security-row:last-child { border-bottom: none; }
         .security-row:hover { background: #fafbfc; }
         .security-row.danger:hover { background: #fff5f5; }
-
         .security-row-icon {
-          width: 34px; height: 34px;
-          border-radius: 9px;
-          background: #f0fdf4;
-          color: #16a34a;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
+          width: 34px; height: 34px; border-radius: 9px; background: #f0fdf4;
+          color: #16a34a; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        .security-row.danger .security-row-icon {
-          background: #fff1f2;
-          color: #f43f5e;
-        }
-
-        .security-row-label {
-          flex: 1;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #1e293b;
-        }
+        .security-row.danger .security-row-icon { background: #fff1f2; color: #f43f5e; }
+        .security-row-label { flex: 1; font-size: 0.875rem; font-weight: 500; color: #1e293b; }
         .security-row.danger .security-row-label { color: #f43f5e; }
-
         .security-row-chevron { color: #cbd5e1; }
-
-        /* Logout confirm */
         .logout-confirm {
-          margin: 0 1.6rem 1rem;
-          background: #fff1f2;
-          border: 1px solid #fecdd3;
-          border-radius: 10px;
-          padding: 0.9rem 1rem;
-          font-size: 0.84rem;
-          color: #be123c;
+          margin: 0 1.6rem 1rem; background: #fff1f2; border: 1px solid #fecdd3;
+          border-radius: 10px; padding: 0.9rem 1rem; font-size: 0.84rem; color: #be123c;
         }
-        .logout-confirm-actions {
-          display: flex;
-          gap: 0.6rem;
-          margin-top: 0.7rem;
-        }
+        .logout-confirm-actions { display: flex; gap: 0.6rem; margin-top: 0.7rem; }
         .logout-confirm-yes {
-          background: #f43f5e;
-          color: #ffffff;
-          border: none;
-          padding: 0.5rem 1.1rem;
-          border-radius: 7px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
+          background: #f43f5e; color: #ffffff; border: none;
+          padding: 0.5rem 1.1rem; border-radius: 7px; font-size: 0.82rem;
+          font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
         }
         .logout-confirm-yes:hover { background: #e11d48; }
         .logout-confirm-no {
-          background: transparent;
-          border: 1px solid #fecdd3;
-          color: #be123c;
-          padding: 0.5rem 1.1rem;
-          border-radius: 7px;
-          font-size: 0.82rem;
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
+          background: transparent; border: 1px solid #fecdd3; color: #be123c;
+          padding: 0.5rem 1.1rem; border-radius: 7px; font-size: 0.82rem;
+          cursor: pointer; font-family: 'Inter', sans-serif;
         }
       `}</style>
 
@@ -131,14 +83,12 @@ export default function SecuritySection() {
         <div className="security-header">
           <div className="security-title">Security</div>
         </div>
-
         <div className="security-list">
           <div className="security-row">
             <div className="security-row-icon"><LockIcon /></div>
             <div className="security-row-label">Change Password</div>
             <div className="security-row-chevron"><ChevronIcon /></div>
           </div>
-
           <div className="security-row danger" onClick={() => setShowConfirm((v) => !v)}>
             <div className="security-row-icon"><LogoutIcon /></div>
             <div className="security-row-label">Log Out</div>
@@ -150,7 +100,7 @@ export default function SecuritySection() {
           <div className="logout-confirm">
             Are you sure you want to log out?
             <div className="logout-confirm-actions">
-              <button className="logout-confirm-yes" onClick={() => { window.location.href = "/login"; }}>
+              <button className="logout-confirm-yes" onClick={handleLogout}>
                 Yes, log out
               </button>
               <button className="logout-confirm-no" onClick={() => setShowConfirm(false)}>
