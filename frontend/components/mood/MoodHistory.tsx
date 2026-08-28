@@ -1,36 +1,65 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { getMoods, deleteMood, Mood } from "@/services/mood";
 import MoodCard from "./MoodCard";
-import { MoodId } from "./moodData";
 
-const DUMMY_HISTORY: { date: string; mood: MoodId; note: string }[] = [
-  { date: "June 15", mood: "happy", note: "Finished project work and felt productive." },
-  { date: "June 14", mood: "stressed", note: "Lots of assignments piling up." },
-  { date: "June 13", mood: "great", note: "Started a new project — excited about it." },
-  { date: "June 12", mood: "neutral", note: "Pretty average day, nothing notable." },
-  { date: "June 11", mood: "happy", note: "Went for a walk after a stressful morning." },
-  { date: "June 10", mood: "sad", note: "Felt a bit low, didn't get much done." },
-  { date: "June 9", mood: "great", note: "Caught up with old friends." },
-];
+export default function MoodHistory({ newEntry }: { newEntry?: Mood | null }) {
+  const [moods, setMoods]     = useState<Mood[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState("");
 
-export default function MoodHistory() {
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const data = await getMoods();
+        setMoods(data);
+      } catch (err: any) {
+        setError(err.message || "Failed to load mood history.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  // Prepend new entry when MoodSelector saves one
+  useEffect(() => {
+    if (newEntry) {
+      setMoods((prev) => [newEntry, ...prev]);
+    }
+  }, [newEntry]);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this mood entry?")) return;
+    try {
+      await deleteMood(id);
+      setMoods((prev) => prev.filter((m) => m.id !== id));
+    } catch (err: any) {
+      alert(err.message || "Failed to delete mood.");
+    }
+  };
+
+  if (loading) return <div style={{ fontSize: "0.85rem", color: "#94a3b8" }}>Loading mood history...</div>;
+  if (error)   return <div style={{ fontSize: "0.85rem", color: "#f87171" }}>{error}</div>;
+  if (moods.length === 0) return <div style={{ fontSize: "0.85rem", color: "#94a3b8" }}>No mood entries yet. Log your first mood above.</div>;
+
   return (
     <>
       <style>{`
-        .mood-history-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.9rem;
-        }
+        .mood-history-list { display: flex; flex-direction: column; gap: 0.9rem; }
       `}</style>
 
       <div className="mood-history-list">
-        {DUMMY_HISTORY.map((entry) => (
+        {moods.map((mood) => (
           <MoodCard
-            key={entry.date}
-            date={entry.date}
-            mood={entry.mood}
-            note={entry.note}
+            key={mood.id}
+            mood={mood.mood}
+            note={mood.note}
+            date={new Date(mood.createdAt).toLocaleDateString("en-US", {
+              month: "long", day: "numeric", year: "numeric",
+            })}
+            onDelete={() => handleDelete(mood.id)}
           />
         ))}
       </div>

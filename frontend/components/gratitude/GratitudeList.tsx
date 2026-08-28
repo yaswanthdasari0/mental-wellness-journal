@@ -1,43 +1,69 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { getGratitudes, Gratitude } from "@/services/gratitude";
 import GratitudeCard from "./GratitudeCard";
 
-// TODO: replace with GET /api/gratitude once backend is ready
-const DUMMY_ENTRIES = [
-  {
-    date: "June 16, 2026",
-    items: ["Family", "Good health", "Learning something new today"],
-  },
-  {
-    date: "June 15, 2026",
-    items: ["Friends who check in", "Coffee", "A solid gym session"],
-  },
-  {
-    date: "June 14, 2026",
-    items: ["Quiet mornings", "Getting the dashboard done", "A good night's sleep"],
-  },
-  {
-    date: "June 13, 2026",
-    items: ["Books", "Sunshine", "Having goals to work toward"],
-  },
-  {
-    date: "June 12, 2026",
-    items: ["Hot food", "Music that matches the mood", "People who are patient with me"],
-  },
-];
+export default function GratitudeList({
+  newEntry,
+}: {
+  newEntry?: Gratitude | null;
+}) {
+  const [entries, setEntries] = useState<Gratitude[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState("");
 
-export default function GratitudeList() {
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const data = await getGratitudes();
+        setEntries(data);
+      } catch (err: any) {
+        setError(err.message || "Failed to load gratitude entries.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  // Prepend new entry when GratitudeForm saves one
+  useEffect(() => {
+    if (newEntry) {
+      setEntries((prev) => [newEntry, ...prev]);
+    }
+  }, [newEntry]);
+
+  const handleUpdate = (updated: Gratitude) => {
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+  };
+
+  const handleDelete = (id: string) => {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  if (loading) return <div style={{ fontSize: "0.85rem", color: "#94a3b8" }}>Loading entries...</div>;
+  if (error)   return <div style={{ fontSize: "0.85rem", color: "#f87171" }}>{error}</div>;
+  if (entries.length === 0) return (
+    <div style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
+      No gratitude entries yet. Write your first one.
+    </div>
+  );
+
   return (
     <>
       <style>{`
-        .gratitude-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.85rem;
-        }
+        .gratitude-list { display: flex; flex-direction: column; gap: 0.85rem; }
       `}</style>
 
       <div className="gratitude-list">
-        {DUMMY_ENTRIES.map((entry) => (
-          <GratitudeCard key={entry.date} date={entry.date} items={entry.items} />
+        {entries.map((entry) => (
+          <GratitudeCard
+            key={entry.id}
+            entry={entry}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+          />
         ))}
       </div>
     </>
