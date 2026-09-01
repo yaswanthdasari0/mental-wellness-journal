@@ -61,6 +61,8 @@ export const removeUser = (): void => {
 export const clearAuth = (): void => {
   removeToken();
   removeUser();
+  // Also clear the cookie used by Next.js middleware
+  document.cookie = "mindspace_token=; path=/; max-age=0";
 };
 
 // ── API calls ──────────────────────────────────────────
