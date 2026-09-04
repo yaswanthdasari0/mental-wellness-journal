@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
-
-function CameraIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.5 4h-5l-2 3H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3.5l-2-3z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
+import { useState, useEffect, useRef } from "react";
+import { getProfile, updateProfile, UserProfile } from "@/services/user";
 
 function EditIcon() {
   return (
@@ -19,176 +11,212 @@ function EditIcon() {
     </svg>
   );
 }
+function CameraIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 4h-5l-2 3H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3.5l-2-3z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
 
 export default function ProfileCard() {
+  const [user, setUser]       = useState<UserProfile | null>(null);
+  const [avatar, setAvatar]   = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState("Akash Pal");
-  const [email, setEmail] = useState("akash@example.com");
-  const [draft, setDraft] = useState({ name, email });
+  const [draft, setDraft]     = useState({ name: "", email: "" });
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState("");
+  const [success, setSuccess] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = () => {
-    setName(draft.name);
-    setEmail(draft.email);
-    setEditing(false);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getProfile();
+        setUser(data);
+        setDraft({ name: data.name, email: data.email });
+        // Load saved avatar
+        const saved = localStorage.getItem("mindspace_avatar");
+        if (saved) setAvatar(saved);
+      } catch (err: any) {
+        setError(err.message || "Failed to load profile.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Handle avatar file selection — convert to base64 and store in localStorage
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size (max 2MB)
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file."); return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Image must be smaller than 2MB."); return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      setAvatar(base64);
+      localStorage.setItem("mindspace_avatar", base64);
+      // Notify Header to refresh avatar
+      window.dispatchEvent(new Event("profile-updated"));
+    };
+    reader.readAsDataURL(file);
   };
 
-  const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  const handleSave = async () => {
+    if (!draft.name.trim() || !draft.email.trim()) return;
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const updated = await updateProfile({ name: draft.name, email: draft.email });
+      setUser(updated);
+      setEditing(false);
+      setSuccess("Profile updated.");
+      // Notify Header to refresh name
+      window.dispatchEvent(new Event("profile-updated"));
+      setTimeout(() => setSuccess(""), 2500);
+    } catch (err: any) {
+      setError(err.message || "Failed to update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const initials = user
+    ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
+
+  const memberSince = user
+    ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "";
 
   return (
     <>
       <style>{`
         .profile-card {
-          background: #ffffff;
-          border: 1px solid #e8eaed;
-          border-radius: 18px;
-          padding: 2rem 1.8rem;
+          background: var(--card-bg, #ffffff);
+          border: 1px solid var(--border, #e8eaed);
+          border-radius: 18px; padding: 2rem 1.8rem;
           box-shadow: 0 1px 2px rgba(15,23,42,0.03);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-          text-align: center;
+          display: flex; flex-direction: column;
+          align-items: center; gap: 1rem; text-align: center;
         }
-
         .profile-avatar-wrap { position: relative; }
-
         .profile-avatar {
-          width: 88px; height: 88px;
-          border-radius: 50%;
+          width: 88px; height: 88px; border-radius: 50%;
           background: linear-gradient(135deg, #16a34a, #4ade80);
-          color: #ffffff;
-          font-family: 'DM Serif Display', serif;
-          font-size: 2rem;
-          display: flex; align-items: center; justify-content: center;
-          letter-spacing: -0.02em;
-          user-select: none;
+          color: #ffffff; font-family: 'DM Serif Display', serif;
+          font-size: 2rem; display: flex; align-items: center;
+          justify-content: center; letter-spacing: -0.02em;
+          user-select: none; overflow: hidden;
         }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 
-        .profile-avatar-edit {
-          position: absolute;
-          bottom: 2px; right: 2px;
-          width: 26px; height: 26px;
-          border-radius: 50%;
-          background: #ffffff;
-          border: 1.5px solid #e8eaed;
-          color: #64748b;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer;
+        .profile-avatar-edit-btn {
+          position: absolute; bottom: 2px; right: 2px;
+          width: 28px; height: 28px; border-radius: 50%;
+          background: #ffffff; border: 1.5px solid #e8eaed;
+          color: #64748b; display: flex; align-items: center;
+          justify-content: center; cursor: pointer;
           transition: border-color 0.15s, color 0.15s;
         }
-        .profile-avatar-edit:hover { border-color: #16a34a; color: #16a34a; }
+        .profile-avatar-edit-btn:hover { border-color: #16a34a; color: #16a34a; }
 
-        .profile-name {
-          font-family: 'DM Serif Display', serif;
-          font-size: 1.3rem;
-          color: #0f172a;
-          letter-spacing: -0.02em;
-        }
-        .profile-email {
-          font-size: 0.85rem;
-          color: #94a3b8;
-          margin-top: -0.5rem;
-        }
+        .profile-name  { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-primary, #0f172a); letter-spacing: -0.02em; }
+        .profile-email { font-size: 0.85rem; color: #94a3b8; margin-top: -0.5rem; }
+        .profile-joined { font-size: 0.74rem; color: #cbd5e1; }
+        .profile-success { font-size: 0.8rem; color: #16a34a; font-weight: 500; }
+        .profile-error-msg { font-size: 0.8rem; color: #f87171; }
+        .profile-loading { font-size: 0.85rem; color: #94a3b8; }
 
-        /* Inline edit form */
-        .profile-edit-form {
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          gap: 0.7rem;
-          text-align: left;
-        }
-        .profile-edit-label {
-          font-size: 0.76rem;
-          color: #64748b;
-          font-weight: 500;
-          margin-bottom: 0.25rem;
-          display: block;
-        }
+        .profile-edit-form { width: 100%; display: flex; flex-direction: column; gap: 0.7rem; text-align: left; }
+        .profile-edit-label { font-size: 0.76rem; color: #64748b; font-weight: 500; margin-bottom: 0.25rem; display: block; }
         .profile-edit-input {
-          width: 100%;
-          background: #f7f8fa;
-          border: 1px solid #e8eaed;
-          border-radius: 8px;
-          padding: 0.65rem 0.9rem;
-          font-size: 0.875rem;
-          color: #334155;
-          font-family: 'Inter', sans-serif;
-          outline: none;
-          transition: border-color 0.2s;
+          width: 100%; background: var(--surface, #f7f8fa);
+          border: 1px solid var(--border, #e8eaed); border-radius: 8px;
+          padding: 0.65rem 0.9rem; font-size: 0.875rem;
+          color: var(--text-primary, #334155);
+          font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s;
         }
         .profile-edit-input:focus { border-color: #16a34a; }
-
-        .profile-edit-actions {
-          display: flex;
-          gap: 0.6rem;
-          justify-content: flex-end;
-          margin-top: 0.3rem;
-        }
+        .profile-edit-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.3rem; }
         .profile-btn-save {
-          background: #16a34a;
-          color: #ffffff;
-          border: none;
-          padding: 0.6rem 1.3rem;
-          border-radius: 8px;
-          font-size: 0.84rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background 0.2s;
-          font-family: 'Inter', sans-serif;
+          background: #16a34a; color: #ffffff; border: none;
+          padding: 0.6rem 1.3rem; border-radius: 8px;
+          font-size: 0.84rem; font-weight: 600; cursor: pointer;
+          font-family: 'Inter', sans-serif; transition: background 0.2s;
         }
         .profile-btn-save:hover { background: #15803d; }
+        .profile-btn-save:disabled { background: #e8eaed; color: #94a3b8; cursor: not-allowed; }
         .profile-btn-cancel {
-          background: transparent;
-          border: 1px solid #e8eaed;
-          color: #64748b;
-          padding: 0.6rem 1.1rem;
-          border-radius: 8px;
-          font-size: 0.84rem;
-          cursor: pointer;
-          transition: border-color 0.15s;
-          font-family: 'Inter', sans-serif;
+          background: transparent; border: 1px solid var(--border, #e8eaed);
+          color: #64748b; padding: 0.6rem 1.1rem; border-radius: 8px;
+          font-size: 0.84rem; cursor: pointer; font-family: 'Inter', sans-serif;
         }
-        .profile-btn-cancel:hover { border-color: #94a3b8; }
-
         .profile-edit-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          background: transparent;
-          border: 1px solid #e8eaed;
-          color: #64748b;
-          padding: 0.55rem 1.1rem;
-          border-radius: 8px;
-          font-size: 0.82rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: border-color 0.15s, color 0.15s;
-          font-family: 'Inter', sans-serif;
+          display: flex; align-items: center; gap: 0.4rem;
+          background: transparent; border: 1px solid var(--border, #e8eaed);
+          color: #64748b; padding: 0.55rem 1.1rem; border-radius: 8px;
+          font-size: 0.82rem; font-weight: 500; cursor: pointer;
+          font-family: 'Inter', sans-serif; transition: border-color 0.15s, color 0.15s;
         }
         .profile-edit-btn:hover { border-color: #16a34a; color: #16a34a; }
-
-        .profile-joined {
-          font-size: 0.74rem;
-          color: #cbd5e1;
-          margin-top: -0.3rem;
-        }
       `}</style>
+
+      {/* Hidden file input for avatar upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleAvatarChange}
+      />
 
       <div className="profile-card">
         <div className="profile-avatar-wrap">
-          <div className="profile-avatar">{initials}</div>
-          <div className="profile-avatar-edit"><CameraIcon /></div>
+          <div className="profile-avatar">
+            {avatar
+              ? <img src={avatar} alt="Profile" />
+              : (!loading && initials)
+            }
+          </div>
+          {/* Click to open file picker */}
+          <button
+            className="profile-avatar-edit-btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload photo"
+          >
+            <CameraIcon />
+          </button>
         </div>
 
-        {!editing ? (
+        {loading ? (
+          <div className="profile-loading">Loading profile...</div>
+        ) : !editing ? (
           <>
             <div>
-              <div className="profile-name">{name}</div>
-              <div className="profile-email">{email}</div>
+              <div className="profile-name">{user?.name}</div>
+              <div className="profile-email">{user?.email}</div>
             </div>
-            <div className="profile-joined">Member since June 2026</div>
-            <button className="profile-edit-btn" onClick={() => { setDraft({ name, email }); setEditing(true); }}>
+            <div className="profile-joined">Member since {memberSince}</div>
+            {success && <div className="profile-success">{success}</div>}
+            {error   && <div className="profile-error-msg">{error}</div>}
+            <button
+              className="profile-edit-btn"
+              onClick={() => { setDraft({ name: user!.name, email: user!.email }); setEditing(true); setError(""); }}
+            >
               <EditIcon /> Edit Profile
             </button>
           </>
@@ -200,11 +228,14 @@ export default function ProfileCard() {
             </div>
             <div>
               <label className="profile-edit-label">Email</label>
-              <input className="profile-edit-input" type="email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} />
+              <input type="email" className="profile-edit-input" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} />
             </div>
+            {error && <div className="profile-error-msg">{error}</div>}
             <div className="profile-edit-actions">
-              <button className="profile-btn-cancel" onClick={() => setEditing(false)}>Cancel</button>
-              <button className="profile-btn-save" onClick={handleSave}>Save</button>
+              <button className="profile-btn-cancel" onClick={() => { setEditing(false); setError(""); }}>Cancel</button>
+              <button className="profile-btn-save" onClick={handleSave} disabled={saving || !draft.name.trim() || !draft.email.trim()}>
+                {saving ? "Saving..." : "Save"}
+              </button>
             </div>
           </div>
         )}
