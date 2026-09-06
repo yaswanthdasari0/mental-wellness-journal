@@ -190,6 +190,7 @@ export default function Preferences() {
     setPrefs((prev) => {
       const updated = { ...prev, [key]: !prev[key] };
       savePrefs(updated);
+      window.dispatchEvent(new Event("dark-mode-changed"));
       if (key === "darkMode") applyDarkMode(updated.darkMode);
       return updated;
     });
