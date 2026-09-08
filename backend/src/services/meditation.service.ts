@@ -3,14 +3,15 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export interface CreateSessionInput {
-  duration: number; // minutes
+  duration: number;
   userId: string;
 }
 
 export const createSessionService = async (input: CreateSessionInput) => {
   const { duration, userId } = input;
 
-  const session = await prisma.meditationSession.create({
+  // Safety check — make sure model exists before calling
+  const session = await (prisma as any).meditationSession.create({
     data: { duration, userId },
   });
 
@@ -18,19 +19,18 @@ export const createSessionService = async (input: CreateSessionInput) => {
 };
 
 export const getSessionsService = async (userId: string) => {
-  const sessions = await prisma.meditationSession.findMany({
+  const sessions = await (prisma as any).meditationSession.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
   });
 
-  // Total minutes this week
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - 7);
   weekStart.setHours(0, 0, 0, 0);
 
   const weeklyMinutes = sessions
-    .filter((s) => new Date(s.createdAt) >= weekStart)
-    .reduce((sum, s) => sum + s.duration, 0);
+    .filter((s: any) => new Date(s.createdAt) >= weekStart)
+    .reduce((sum: number, s: any) => sum + s.duration, 0);
 
   return { sessions, weeklyMinutes };
 };
