@@ -8,7 +8,8 @@ import journalRoutes    from "./routes/journal.routes";
 import gratitudeRoutes  from "./routes/gratitude.routes";
 import habitRoutes      from "./routes/habit.routes";
 import meditationRoutes from "./routes/meditation.routes";
-import userRoutes       from "./routes/user.routes"; // ← added
+import userRoutes       from "./routes/user.routes";
+import dashboardRoutes  from "./routes/dashboard.routes"; // ← added
 
 dotenv.config();
 
@@ -27,7 +28,8 @@ app.use("/api/journals",   journalRoutes);
 app.use("/api/gratitude",  gratitudeRoutes);
 app.use("/api/habits",     habitRoutes);
 app.use("/api/meditation", meditationRoutes);
-app.use("/api/user",       userRoutes); // ← added
+app.use("/api/user",       userRoutes);
+app.use("/api/dashboard",  dashboardRoutes); // ← added
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: "Route not found." });
