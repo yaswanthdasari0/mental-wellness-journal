@@ -208,7 +208,6 @@ export default function ProfileCard() {
           <>
             <div>
               <div className="profile-name">{user?.name}</div>
-              <div className="profile-email">{user?.email}</div>
             </div>
             <div className="profile-joined">Member since {memberSince}</div>
             {success && <div className="profile-success">{success}</div>}

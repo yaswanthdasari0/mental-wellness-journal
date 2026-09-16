@@ -187,13 +187,18 @@ export default function Preferences() {
   }, []);
 
   const toggle = (key: keyof Prefs) => {
-    setPrefs((prev) => {
-      const updated = { ...prev, [key]: !prev[key] };
-      savePrefs(updated);
-      window.dispatchEvent(new Event("dark-mode-changed"));
-      if (key === "darkMode") applyDarkMode(updated.darkMode);
-      return updated;
-    });
+    // Compute updated value outside the setter — no side effects inside setState
+    const updated = { ...prefs, [key]: !prefs[key] };
+    savePrefs(updated);
+    setPrefs(updated);
+
+    // Schedule side effects AFTER render, never during
+    if (key === "darkMode") {
+      setTimeout(() => {
+        applyDarkMode(updated.darkMode);
+        window.dispatchEvent(new Event("dark-mode-changed"));
+      }, 0);
+    }
   };
 
   const PREF_ITEMS = [
