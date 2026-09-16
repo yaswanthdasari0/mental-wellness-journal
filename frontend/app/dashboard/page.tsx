@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Header from "@/components/dashboard/Header";
@@ -29,48 +28,49 @@ const QUICK_ACTIONS = [
 ];
 
 export default function DashboardPage() {
-  const router  = useRouter();
-  const user    = getUser();
-  const name    = user?.name?.split(" ")[0] ?? "there";
+  const user = getUser();
+  const name = user?.name?.split(" ")[0] ?? "there";
 
   const [data, setData]       = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       try {
         const summary = await getDashboardSummary();
         setData(summary);
       } catch (err: any) {
-        setError(err.message || "Failed to load dashboard.");
+        // Don't show raw error — show a friendly message
+        setError("Could not load dashboard data. Please refresh the page.");
+        console.error(err.message);
       } finally {
         setLoading(false);
       }
     };
-    fetch();
+    load();
   }, []);
 
-  // Format today's mood for display
-  const moodLabel = data?.todayMood
+  // Mood display
+  const moodLabel   = data?.todayMood
     ? data.todayMood.mood.charAt(0).toUpperCase() + data.todayMood.mood.slice(1)
     : "Not logged";
-
   const moodCaption = data?.todayMood ? "Logged today" : "Tap to log now";
 
-  // Format meditation
-  const meditationVal = data
-    ? data.meditationMinutes > 0
-      ? `${data.meditationMinutes} min`
-      : "0 min"
-    : "—";
+  // Journal display
+  const journalVal     = loading ? "—" : String(data?.journalCount ?? 0);
+  const journalCaption = loading ? "" : `${data?.weekJournalCount ?? 0} this week`;
 
-  // Habit caption
-  const habitCaption = data
-    ? data.habitsTotal > 0
-      ? `${data.habitsCompleted} of ${data.habitsTotal} done today`
-      : "No habits yet"
-    : "";
+  // Meditation display
+  const meditationVal     = loading ? "—" : data?.meditationMinutes ? `${data.meditationMinutes} min` : "0 min";
+  const meditationCaption = "this week";
+
+  // Habits caption
+  const habitCaption = loading
+    ? ""
+    : data?.habitsTotal
+    ? `${data.habitsCompleted} of ${data.habitsTotal} done`
+    : "No habits yet";
 
   return (
     <>
@@ -106,9 +106,11 @@ export default function DashboardPage() {
         }
         @media (max-width: 900px) { .lower-grid { grid-template-columns: 1fr; } }
 
-        /* Quick actions */
         .quick-actions-section { margin-top: 2rem; }
-        .quick-actions-heading { font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-bottom: 0.9rem; }
+        .quick-actions-heading {
+          font-size: 0.95rem; font-weight: 600;
+          color: #0f172a; margin-bottom: 0.9rem;
+        }
         .quick-actions-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
         .quick-action-btn {
           display: flex; align-items: center; gap: 0.5rem;
@@ -119,12 +121,6 @@ export default function DashboardPage() {
         }
         .quick-action-btn:hover {
           border-color: #16a34a; background: rgba(22,163,74,0.05); color: #16a34a;
-        }
-
-        /* Error */
-        .dashboard-error {
-          background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px;
-          padding: 1rem 1.4rem; font-size: 0.875rem; color: #be123c; margin-bottom: 1.5rem;
         }
       `}</style>
 
@@ -138,11 +134,21 @@ export default function DashboardPage() {
             <h1 className="dashboard-greeting">Good to see you, {name}</h1>
             <p className="dashboard-subtext">Here's where things stand today.</p>
 
-            {error && <div className="dashboard-error">{error}</div>}
+            {/* Error — friendly, no raw message */}
+            {error && !loading && (
+              <div style={{
+                background: "#fff1f2", border: "1px solid #fecdd3", borderRadius: 12,
+                padding: "0.9rem 1.2rem", fontSize: "0.85rem", color: "#be123c",
+                marginBottom: "1.5rem",
+              }}>
+                {error}
+              </div>
+            )}
 
             {/* Stats row */}
             <div className="overview-grid">
               <StreakCard streak={data?.streak ?? 0} loading={loading} />
+
               <StatsCard
                 icon="mood"
                 label="Today's Mood"
@@ -150,18 +156,20 @@ export default function DashboardPage() {
                 caption={loading ? "" : moodCaption}
                 loading={loading}
               />
+
               <StatsCard
                 icon="journal"
                 label="Journal Entries"
-                value={loading ? "—" : String(data?.journalCount ?? 0)}
-                caption={loading ? "" : `${data?.weekJournalCount ?? 0} this week`}
+                value={journalVal}
+                caption={journalCaption}
                 loading={loading}
               />
+
               <StatsCard
                 icon="meditation"
                 label="Meditation"
-                value={loading ? "—" : meditationVal}
-                caption={loading ? "" : "this week"}
+                value={meditationVal}
+                caption={meditationCaption}
                 loading={loading}
               />
             </div>

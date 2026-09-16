@@ -4,15 +4,14 @@ import { fetchWithAuth } from "./api";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export interface DashboardSummary {
-  todayMood:        { mood: string; note?: string } | null;
-  weeklyMoods:      { mood: string; createdAt: string }[];
-  journalCount:     number;
-  weekJournalCount: number;
-  streak:           number;
-  habitsCompleted:  number;
-  habitsTotal:      number;
+  todayMood:         { mood: string; note?: string } | null;
+  journalCount:      number;
+  weekJournalCount:  number;
+  streak:            number;
+  habitsCompleted:   number;
+  habitsTotal:       number;
   meditationMinutes: number;
-  recentActivity:   {
+  recentActivity:    {
     type:  "mood" | "journal" | "gratitude";
     label: string;
     time:  string;
