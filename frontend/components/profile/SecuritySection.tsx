@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { clearAuth } from "@/services/auth";
 import { changePassword } from "@/services/user";
 
@@ -30,7 +29,6 @@ function ChevronIcon() {
 }
 
 export default function SecuritySection() {
-  const router = useRouter();
   const [showLogout, setShowLogout]     = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,9 +41,15 @@ export default function SecuritySection() {
   const [pwSuccess, setPwSuccess]   = useState("");
 
   const handleLogout = () => {
-    clearAuth();
+    try {
+      clearAuth();
+    } catch (err) {
+      console.error("clearAuth failed during logout:", err);
+    }
     document.cookie = "mindspace_token=; path=/; max-age=0";
-    router.push("/login");
+    // Hard redirect (not router.push) so logout can't be blocked or
+    // intercepted by any client-side auth/route guard.
+    window.location.href = "/login";
   };
 
   const handleChangePassword = async () => {

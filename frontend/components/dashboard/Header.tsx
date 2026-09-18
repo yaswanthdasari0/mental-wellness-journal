@@ -203,9 +203,15 @@ export default function Header() {
   };
 
   const handleLogout = () => {
-    clearAuth();
+    try {
+      clearAuth();
+    } catch (err) {
+      console.error("clearAuth failed during logout:", err);
+    }
     document.cookie = "mindspace_token=; path=/; max-age=0";
-    router.push("/login");
+    // Hard redirect (not router.push) so logout can't be blocked or
+    // intercepted by any client-side auth/route guard.
+    window.location.href = "/login";
   };
 
   const unread   = notifications.filter((n) => !n.read).length;
