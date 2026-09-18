@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { getUser, clearAuth } from "@/services/auth";
 
@@ -39,7 +39,6 @@ function Icon({ name }: { name: string }) {
 
 export default function Sidebar() {
   const pathname  = usePathname();
-  const router    = useRouter();
 
   const [collapsed, setCollapsed]         = useState(false);
   const [mobileOpen, setMobileOpen]       = useState(false);
@@ -73,9 +72,15 @@ export default function Sidebar() {
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const handleLogout = () => {
-    clearAuth();
+    try {
+      clearAuth();
+    } catch (err) {
+      console.error("clearAuth failed during logout:", err);
+    }
     document.cookie = "mindspace_token=; path=/; max-age=0";
-    router.push("/login");
+    // Hard redirect (not router.push) so logout can't be blocked or
+    // intercepted by any client-side auth/route guard.
+    window.location.href = "/login";
   };
 
   const isActive = (href: string) => {
@@ -92,7 +97,7 @@ export default function Sidebar() {
       {/* Top — logo + collapse toggle */}
       <div className="sidebar-top">
         {!collapsed && (
-          <Link href="/" className="sidebar-logo">Mind<span>Space</span></Link>
+          <Link href="/dashboard" className="sidebar-logo">Mind<span>Space</span></Link>
         )}
         <button
           className="sidebar-collapse-btn"

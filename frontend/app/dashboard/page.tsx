@@ -28,14 +28,18 @@ const QUICK_ACTIONS = [
 ];
 
 export default function DashboardPage() {
-  const user = getUser();
-  const name = user?.name?.split(" ")[0] ?? "there";
-
+  // name must be in state — getUser() reads localStorage (client only)
+  // initialising with empty string prevents server/client mismatch
+  const [name, setName]       = useState("");
   const [data, setData]       = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
 
   useEffect(() => {
+    // Read localStorage only on client — avoids hydration mismatch
+    const user = getUser();
+    setName(user?.name?.split(" ")[0] ?? "there");
+
     const load = async () => {
       try {
         const summary = await getDashboardSummary();

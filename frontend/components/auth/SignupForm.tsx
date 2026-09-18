@@ -47,7 +47,23 @@ export default function SignupForm() {
   return (
     <>
       <style>{`
-        .auth-form { width: 100%; max-width: 380px; }
+        * {
+          box-sizing: border-box;
+        }
+
+        html,
+        body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          min-height: 100%;
+        }
+        .auth-form {
+          width: 100%;
+          max-width: 380px;
+          margin: 0;
+          padding: 0;
+        }
         .field-group { margin-bottom: 1.3rem; }
         .field-label {
           display: block; font-size: 0.78rem; color: #6b7280;

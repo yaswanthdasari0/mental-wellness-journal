@@ -68,7 +68,9 @@ export default function AuthLayout({
       <div className="auth-page">
         <div className="auth-orb" />
         <div className="auth-panel">
+          <div>
           <a href="/" className="auth-logo">Mind<span>Space</span></a>
+          </div>
           <h1 className="auth-title">{title}</h1>
           <p className="auth-subtitle">{subtitle}</p>
           {children}
