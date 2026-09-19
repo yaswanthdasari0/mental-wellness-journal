@@ -283,7 +283,7 @@ export default function Sidebar() {
           padding: 0.75rem 1rem; font-size: 0.85rem; font-weight: 500;
           color: #334155; text-decoration: none; cursor: pointer;
           background: transparent; border: none; width: 100%; text-align: left;
-          transition: background 0.15s;
+          transition: background 0.15s; font-family: 'Inter', sans-serif;
         }
         .dropdown-item:hover { background: #f4f6f8; }
         .dropdown-item.danger { color: #f43f5e; }

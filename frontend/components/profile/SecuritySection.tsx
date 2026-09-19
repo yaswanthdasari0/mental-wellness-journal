@@ -1,29 +1,29 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { clearAuth } from "@/services/auth";
+import { logout } from "@/services/auth";
 import { changePassword } from "@/services/user";
 
 function LockIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
   );
 }
 function LogoutIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H9" />
-      <path d="M13 12h7m0 0-3-3m3 3-3 3" />
+      <path d="M9 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H9"/>
+      <path d="M13 12h7m0 0-3-3m3 3-3 3"/>
     </svg>
   );
 }
 function ChevronIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 18l6-6-6-6" />
+      <path d="M9 18l6-6-6-6"/>
     </svg>
   );
 }
@@ -32,40 +32,23 @@ export default function SecuritySection() {
   const [showLogout, setShowLogout]     = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Password form state
-  const [currentPw, setCurrentPw]   = useState("");
-  const [newPw, setNewPw]           = useState("");
-  const [confirmPw, setConfirmPw]   = useState("");
-  const [pwLoading, setPwLoading]   = useState(false);
-  const [pwError, setPwError]       = useState("");
-  const [pwSuccess, setPwSuccess]   = useState("");
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw]         = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError]     = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
 
   const handleLogout = () => {
-    try {
-      clearAuth();
-    } catch (err) {
-      console.error("clearAuth failed during logout:", err);
-    }
-    document.cookie = "mindspace_token=; path=/; max-age=0";
-    // Hard redirect (not router.push) so logout can't be blocked or
-    // intercepted by any client-side auth/route guard.
-    window.location.href = "/login";
+    // logout() handles everything — clears storage, cookie, redirects to /
+    logout();
   };
 
   const handleChangePassword = async () => {
-    setPwError("");
-    setPwSuccess("");
-
-    if (!currentPw || !newPw || !confirmPw) {
-      setPwError("All fields are required."); return;
-    }
-    if (newPw.length < 6) {
-      setPwError("New password must be at least 6 characters."); return;
-    }
-    if (newPw !== confirmPw) {
-      setPwError("New passwords don't match."); return;
-    }
-
+    setPwError(""); setPwSuccess("");
+    if (!currentPw || !newPw || !confirmPw) { setPwError("All fields are required."); return; }
+    if (newPw.length < 6) { setPwError("New password must be at least 6 characters."); return; }
+    if (newPw !== confirmPw) { setPwError("New passwords don't match."); return; }
     setPwLoading(true);
     try {
       await changePassword({ currentPassword: currentPw, newPassword: newPw });
@@ -98,33 +81,17 @@ export default function SecuritySection() {
         .security-row-label { flex: 1; font-size: 0.875rem; font-weight: 500; color: #1e293b; }
         .security-row.danger .security-row-label { color: #f43f5e; }
         .security-row-chevron { color: #cbd5e1; }
-
-        /* Password form */
         .pw-form { padding: 0 1.6rem 1.2rem; display: flex; flex-direction: column; gap: 0.7rem; }
         .pw-label { font-size: 0.78rem; color: #64748b; font-weight: 500; margin-bottom: 0.25rem; display: block; }
-        .pw-input {
-          width: 100%; background: #f7f8fa; border: 1px solid #e8eaed; border-radius: 8px;
-          padding: 0.65rem 0.9rem; font-size: 0.875rem; color: #334155;
-          font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s;
-        }
+        .pw-input { width: 100%; background: #f7f8fa; border: 1px solid #e8eaed; border-radius: 8px; padding: 0.65rem 0.9rem; font-size: 0.875rem; color: #334155; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
         .pw-input:focus { border-color: #16a34a; }
-        .pw-error   { font-size: 0.8rem; color: #f87171; padding: 0.5rem 0.8rem; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); border-radius: 7px; }
+        .pw-error { font-size: 0.8rem; color: #f87171; padding: 0.5rem 0.8rem; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); border-radius: 7px; }
         .pw-success { font-size: 0.8rem; color: #16a34a; font-weight: 500; }
         .pw-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.3rem; }
-        .pw-btn-save {
-          background: #16a34a; color: #fff; border: none; padding: 0.6rem 1.3rem;
-          border-radius: 8px; font-size: 0.84rem; font-weight: 600; cursor: pointer;
-          font-family: 'Inter', sans-serif; transition: background 0.2s;
-        }
+        .pw-btn-save { background: #16a34a; color: #ffffff; border: none; padding: 0.6rem 1.3rem; border-radius: 8px; font-size: 0.84rem; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.2s; }
         .pw-btn-save:hover { background: #15803d; }
         .pw-btn-save:disabled { background: #e8eaed; color: #94a3b8; cursor: not-allowed; }
-        .pw-btn-cancel {
-          background: transparent; border: 1px solid #e8eaed; color: #64748b;
-          padding: 0.6rem 1.1rem; border-radius: 8px; font-size: 0.84rem;
-          cursor: pointer; font-family: 'Inter', sans-serif;
-        }
-
-        /* Logout confirm */
+        .pw-btn-cancel { background: transparent; border: 1px solid #e8eaed; color: #64748b; padding: 0.6rem 1.1rem; border-radius: 8px; font-size: 0.84rem; cursor: pointer; font-family: 'Inter', sans-serif; }
         .logout-confirm { margin: 0 1.6rem 1rem; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 0.9rem 1rem; font-size: 0.84rem; color: #be123c; }
         .logout-confirm-actions { display: flex; gap: 0.6rem; margin-top: 0.7rem; }
         .logout-confirm-yes { background: #f43f5e; color: #ffffff; border: none; padding: 0.5rem 1.1rem; border-radius: 7px; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
@@ -136,15 +103,13 @@ export default function SecuritySection() {
         <div className="security-header">
           <div className="security-title">Security</div>
         </div>
+
         <div className="security-list">
-          {/* Change Password row */}
           <div className="security-row" onClick={() => { setShowPassword((v) => !v); setShowLogout(false); }}>
             <div className="security-row-icon"><LockIcon /></div>
             <div className="security-row-label">Change Password</div>
             <div className="security-row-chevron"><ChevronIcon /></div>
           </div>
-
-          {/* Log Out row */}
           <div className="security-row danger" onClick={() => { setShowLogout((v) => !v); setShowPassword(false); }}>
             <div className="security-row-icon"><LogoutIcon /></div>
             <div className="security-row-label">Log Out</div>
@@ -152,7 +117,6 @@ export default function SecuritySection() {
           </div>
         </div>
 
-        {/* Change password form */}
         {showPassword && (
           <div className="pw-form">
             <div>
@@ -178,13 +142,16 @@ export default function SecuritySection() {
           </div>
         )}
 
-        {/* Logout confirm */}
         {showLogout && (
           <div className="logout-confirm">
             Are you sure you want to log out?
             <div className="logout-confirm-actions">
-              <button className="logout-confirm-yes" onClick={handleLogout}>Yes, log out</button>
-              <button className="logout-confirm-no" onClick={() => setShowLogout(false)}>Cancel</button>
+              <button className="logout-confirm-yes" onClick={handleLogout}>
+                Yes, log out
+              </button>
+              <button className="logout-confirm-no" onClick={() => setShowLogout(false)}>
+                Cancel
+              </button>
             </div>
           </div>
         )}
