@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// This file must live at frontend/src/middleware.ts (Next.js picks it up automatically)
-
-export function middleware(req: NextRequest) {
+// Next.js 16 — export as "proxy" instead of "middleware"
+export function proxy(req: NextRequest) {
   const token = req.cookies.get("mindspace_token")?.value;
 
-  const isProtectedRoute = req.nextUrl.pathname.startsWith("/dashboard") ||
-    req.nextUrl.pathname.startsWith("/mood") ||
-    req.nextUrl.pathname.startsWith("/journal") ||
-    req.nextUrl.pathname.startsWith("/gratitude") ||
-    req.nextUrl.pathname.startsWith("/habits") ||
+  const isProtectedRoute =
+    req.nextUrl.pathname.startsWith("/dashboard") ||
+    req.nextUrl.pathname.startsWith("/mood")       ||
+    req.nextUrl.pathname.startsWith("/journal")    ||
+    req.nextUrl.pathname.startsWith("/gratitude")  ||
+    req.nextUrl.pathname.startsWith("/habits")     ||
     req.nextUrl.pathname.startsWith("/meditation") ||
     req.nextUrl.pathname.startsWith("/profile");
 
@@ -17,12 +17,12 @@ export function middleware(req: NextRequest) {
     req.nextUrl.pathname === "/login" ||
     req.nextUrl.pathname === "/signup";
 
-  // No token + trying to access a protected route → redirect to login
+  // No token + protected route → send to login
   if (isProtectedRoute && !token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Already has token + trying to access login/signup → redirect to dashboard
+  // Already logged in + trying to reach login/signup → send to dashboard
   if (isAuthRoute && token) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
@@ -31,7 +31,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Run middleware on these paths only
   matcher: [
     "/dashboard/:path*",
     "/mood/:path*",
