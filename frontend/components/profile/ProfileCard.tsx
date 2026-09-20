@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getProfile, updateProfile, UserProfile } from "@/services/user";
+import { getAvatar, saveAvatar, moveAvatar, resizeImage } from "@/services/avatar";
 
 function EditIcon() {
   return (
@@ -37,9 +38,8 @@ export default function ProfileCard() {
         const data = await getProfile();
         setUser(data);
         setDraft({ name: data.name, email: data.email });
-        // Load saved avatar
-        const saved = localStorage.getItem("mindspace_avatar");
-        if (saved) setAvatar(saved);
+        // Load THIS user's avatar (stored per account)
+        setAvatar(getAvatar(data));
       } catch (err: any) {
         setError(err.message || "Failed to load profile.");
       } finally {
@@ -49,28 +49,33 @@ export default function ProfileCard() {
     load();
   }, []);
 
-  // Handle avatar file selection — convert to base64 and store in localStorage
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle avatar selection — resize, then store under this user's own key
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file || !user) return;
 
-    // Validate file type and size (max 2MB)
+    setError("");
+
     if (!file.type.startsWith("image/")) {
       setError("Please select an image file."); return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setError("Image must be smaller than 2MB."); return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be smaller than 5MB."); return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target?.result as string;
-      setAvatar(base64);
-      localStorage.setItem("mindspace_avatar", base64);
-      // Notify Header to refresh avatar
+    try {
+      const dataUrl = await resizeImage(file, 256);
+      if (!saveAvatar(user, dataUrl)) {
+        setError("Could not save the photo. Browser storage may be full.");
+        return;
+      }
+      setAvatar(dataUrl);
+      // Notify Sidebar/Header to refresh avatar
       window.dispatchEvent(new Event("profile-updated"));
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      setError(err.message || "Failed to process image.");
+    }
   };
 
   const handleSave = async () => {
@@ -80,11 +85,14 @@ export default function ProfileCard() {
     setSuccess("");
 
     try {
+      const previous = user;
       const updated = await updateProfile({ name: draft.name, email: draft.email });
+      // If the email changed, keep the avatar attached to this account
+      moveAvatar(previous, updated);
       setUser(updated);
       setEditing(false);
       setSuccess("Profile updated.");
-      // Notify Header to refresh name
+      // Notify Sidebar/Header to refresh name
       window.dispatchEvent(new Event("profile-updated"));
       setTimeout(() => setSuccess(""), 2500);
     } catch (err: any) {
@@ -197,6 +205,7 @@ export default function ProfileCard() {
             className="profile-avatar-edit-btn"
             onClick={() => fileInputRef.current?.click()}
             title="Upload photo"
+            disabled={loading || !user}
           >
             <CameraIcon />
           </button>

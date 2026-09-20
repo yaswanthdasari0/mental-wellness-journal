@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { getUser, clearAuth } from "@/services/auth";
+import { getAvatar } from "@/services/avatar";
+
 
 const NAV_ITEMS = [
   { href: "/dashboard",  label: "Dashboard",   icon: "home"   },
@@ -59,13 +61,14 @@ export default function Sidebar() {
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+  const load = () => {
+    const u = getUser();
+    setUser(u);
+    setAvatar(getAvatar(u));   // was: localStorage.getItem("mindspace_avatar")
+  };
+  load();
+  window.addEventListener("profile-updated", load);
+  return () => window.removeEventListener("profile-updated", load);
   }, []);
 
   // Close mobile sidebar on route change
