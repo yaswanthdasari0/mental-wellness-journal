@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUser, clearAuth } from "@/services/auth";
+import { getAvatar } from "@/services/avatar";
 
 // ── Icons ──────────────────────────────────────────────
 
@@ -143,8 +144,9 @@ export default function Header() {
   const searchRef  = useRef<HTMLInputElement>(null);
 
   const load = () => {
-    setUser(getUser());
-    setAvatar(localStorage.getItem("mindspace_avatar"));
+    const u = getUser();
+    setUser(u);
+    setAvatar(getAvatar(u));
     // Load notification preference
     try {
       const prefs = JSON.parse(localStorage.getItem("mindspace_prefs") || "{}");

@@ -28,6 +28,9 @@ export const getUser = (): AuthResponse["user"] | null => {
 export const logout = (): void => {
   localStorage.removeItem("mindspace_token");
   localStorage.removeItem("mindspace_user");
+  // Legacy shared avatar key from before avatars were stored per user.
+  // Per-user avatars ("mindspace_avatar:<email>") are intentionally kept
+  // so each account's picture is still there after logging back in.
   localStorage.removeItem("mindspace_avatar");
   localStorage.removeItem("mindspace_prefs");
   localStorage.removeItem("mindspace_read_notifs");
