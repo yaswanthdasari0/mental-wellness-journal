@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getSessions, MeditationSession } from "@/services/meditation";
 
 function CircleIcon() {
@@ -15,7 +15,6 @@ function CircleIcon() {
 // Friendly relative time label
 function whenLabel(dateStr: string): string {
   const date = new Date(dateStr);
-  const now  = new Date();
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -34,35 +33,37 @@ export default function SessionHistory({
 }: {
   newSession?: MeditationSession | null;
 }) {
-  const [sessions, setSessions]       = useState<MeditationSession[]>([]);
+  const [sessions, setSessions]           = useState<MeditationSession[]>([]);
   const [weeklyMinutes, setWeeklyMinutes] = useState(0);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState("");
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState("");
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getSessions();
-        setSessions(data.sessions);
-        setWeeklyMinutes(data.weeklyMinutes);
-      } catch (err: any) {
-        setError(err.message || "Failed to load sessions.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+  const load = useCallback(async () => {
+    try {
+      const data = await getSessions();
+      setSessions(Array.isArray(data.sessions) ? data.sessions : []);
+      setWeeklyMinutes(data.weeklyMinutes ?? 0);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Failed to load sessions.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Prepend new session when timer completes
+  // Initial load
+  useEffect(() => { load(); }, [load]);
+
+  // Refresh whenever a session is saved (saveSession fires this event)
   useEffect(() => {
-    if (!newSession) return;
-    setSessions((prev) => {
-      if (prev.find((s) => s.id === newSession.id)) return prev;
-      return [newSession, ...prev];
-    });
-    setWeeklyMinutes((prev) => prev + newSession.duration);
-  }, [newSession]);
+    window.addEventListener("meditation-saved", load);
+    return () => window.removeEventListener("meditation-saved", load);
+  }, [load]);
+
+  // Also refresh if the parent passes down a newly completed session
+  useEffect(() => {
+    if (newSession) load();
+  }, [newSession, load]);
 
   return (
     <>
