@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUser, clearAuth } from "@/services/auth";
 import { getAvatar } from "@/services/avatar";
+import { searchUsers, SearchUser } from "@/services/social";
 
 // ── Icons ──────────────────────────────────────────────
 
@@ -21,13 +22,6 @@ function SearchIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="7"/>
       <path d="M20 20l-3.2-3.2"/>
-    </svg>
-  );
-}
-function XIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6 6 18M6 6l12 12"/>
     </svg>
   );
 }
@@ -62,6 +56,19 @@ function LogoutIcon() {
     </svg>
   );
 }
+function LockIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  );
+}
+
+const getInitials = (name?: string) =>
+  name
+    ? name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
 
 // ── Notification type ──────────────────────────────────
 
@@ -130,23 +137,29 @@ function generateDailyReminders(): Notification[] {
 export default function Header() {
   const router = useRouter();
 
-  const [user, setUser]             = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser]             = useState<{ id?: string; name: string; email: string } | null>(null);
   const [avatar, setAvatar]         = useState<string | null>(null);
   const [notifOpen, setNotifOpen]   = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchVal, setSearchVal]   = useState("");
   const [notifications, setNotifs]  = useState<Notification[]>([]);
   const [notifEnabled, setNotifEnabled] = useState(true);
 
-  const notifRef   = useRef<HTMLDivElement>(null);
-  const profileRef = useRef<HTMLDivElement>(null);
-  const searchRef  = useRef<HTMLInputElement>(null);
+  // People search
+  const [query, setQuery]           = useState("");
+  const [results, setResults]       = useState<SearchUser[]>([]);
+  const [searching, setSearching]   = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const notifRef    = useRef<HTMLDivElement>(null);
+  const profileRef  = useRef<HTMLDivElement>(null);
+  const searchRef   = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestQuery = useRef("");
 
   const load = () => {
     const u = getUser();
     setUser(u);
-    setAvatar(getAvatar(u));
+    setAvatar(getAvatar(u)); // per-user avatar
     // Load notification preference
     try {
       const prefs = JSON.parse(localStorage.getItem("mindspace_prefs") || "{}");
@@ -182,15 +195,20 @@ export default function Header() {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Focus search input when opened
+  // Clear any pending search timer on unmount
   useEffect(() => {
-    if (searchOpen) setTimeout(() => searchRef.current?.focus(), 50);
-  }, [searchOpen]);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
 
   const markAllRead = () => {
     const updated = notifications.map((n) => ({ ...n, read: true }));
@@ -216,30 +234,44 @@ export default function Header() {
     window.location.href = "/login";
   };
 
-  const unread   = notifications.filter((n) => !n.read).length;
-  const initials = user?.name
-    ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
+  // Debounced people search (350ms). Ignores out-of-order responses.
+  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    setSearchOpen(true);
+    latestQuery.current = val;
 
-  // Search — navigate to relevant page
-  const SEARCH_ROUTES = [
-    { keywords: ["mood", "feeling", "emotion"],    href: "/mood"       },
-    { keywords: ["journal", "diary", "write"],      href: "/journal"    },
-    { keywords: ["gratitude", "grateful", "thank"], href: "/gratitude"  },
-    { keywords: ["habit", "habits", "streak"],      href: "/habits"     },
-    { keywords: ["meditation", "timer", "breathe"], href: "/meditation" },
-    { keywords: ["profile", "settings", "account"], href: "/profile"   },
-    { keywords: ["dashboard", "home", "overview"],  href: "/dashboard"  },
-  ];
+    if (searchTimer.current) clearTimeout(searchTimer.current);
 
-  const handleSearch = (e: React.KeyboardEvent) => {
-    if (e.key !== "Enter" || !searchVal.trim()) return;
-    const q = searchVal.toLowerCase();
-    const match = SEARCH_ROUTES.find((r) => r.keywords.some((k) => q.includes(k)));
-    if (match) router.push(match.href);
-    setSearchOpen(false);
-    setSearchVal("");
+    if (val.trim().length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const users = await searchUsers(val.trim());
+        if (latestQuery.current === val) setResults(users);
+      } catch {
+        if (latestQuery.current === val) setResults([]);
+      } finally {
+        if (latestQuery.current === val) setSearching(false);
+      }
+    }, 350);
   };
+
+  const handleResultClick = (username: string | null) => {
+    if (!username) return;
+    setSearchOpen(false);
+    setQuery("");
+    setResults([]);
+    router.push(`/u/${username}`);
+  };
+
+  const unread   = notifications.filter((n) => !n.read).length;
+  const initials = getInitials(user?.name);
 
   return (
     <>
@@ -251,8 +283,7 @@ export default function Header() {
           position: sticky; top: 0; z-index: 20;
         }
 
-        /* Left — page title area */
-        .header-left { display: flex; align-items: center; gap: 0.75rem; }
+        /* Left — brand */
         .header-appname {
           font-family: 'DM Serif Display', serif; font-size: 1.1rem;
           color: #0f172a; letter-spacing: -0.02em; text-decoration: none;
@@ -262,21 +293,59 @@ export default function Header() {
         /* Right icons */
         .header-right { display: flex; align-items: center; gap: 0.75rem; }
 
-        /* Search bar */
+        /* ── Search ── */
         .header-search-wrap { position: relative; }
         .header-search-box {
           display: flex; align-items: center; gap: 0.5rem;
           background: #f4f6f8; border: 1px solid #e8eaed;
           border-radius: 8px; padding: 0.45rem 0.85rem;
-          cursor: text; transition: border-color 0.2s;
+          transition: border-color 0.2s; min-width: 220px;
         }
-        .header-search-box:focus-within { border-color: #16a34a; }
+        .header-search-box:focus-within { border-color: #16a34a; background: #ffffff; }
         .header-search-box input {
           border: none; background: transparent; outline: none;
-          font-size: 0.82rem; color: #475569;
-          width: 180px; font-family: 'Inter', sans-serif;
+          font-size: 0.82rem; color: #334155; width: 100%;
+          font-family: 'Inter', sans-serif;
         }
         .header-search-box input::placeholder { color: #94a3b8; }
+
+        .search-dropdown {
+          position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+          background: #ffffff; border: 1px solid #e8eaed; border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(15,23,42,0.1); overflow: hidden; z-index: 100;
+          min-width: 280px;
+        }
+        .search-dropdown-header {
+          padding: 0.6rem 1rem; font-size: 0.72rem; color: #94a3b8;
+          font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .search-result-item {
+          display: flex; align-items: center; gap: 0.75rem;
+          padding: 0.75rem 1rem; cursor: pointer; transition: background 0.12s;
+        }
+        .search-result-item:hover { background: #f7f8fa; }
+        .search-result-item.no-username { cursor: default; opacity: 0.7; }
+        .search-result-avatar {
+          width: 34px; height: 34px; border-radius: 50%;
+          background: linear-gradient(135deg, #16a34a, #4ade80);
+          color: #ffffff; font-size: 0.78rem; font-weight: 700;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .search-result-info { flex: 1; min-width: 0; }
+        .search-result-name {
+          font-size: 0.85rem; font-weight: 600; color: #0f172a;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .search-result-handle { font-size: 0.74rem; color: #94a3b8; }
+        .search-result-private {
+          display: flex; align-items: center; gap: 0.3rem;
+          font-size: 0.7rem; color: #94a3b8; flex-shrink: 0;
+        }
+        .search-empty, .search-loading {
+          padding: 1rem; font-size: 0.83rem; color: #94a3b8; text-align: center;
+        }
 
         /* Icon buttons */
         .header-icon-btn {
@@ -289,12 +358,6 @@ export default function Header() {
         }
         .header-icon-btn:hover { background: #eef1f4; color: #0f172a; }
 
-        /* Notification dot */
-        .notif-dot {
-          position: absolute; top: 6px; right: 6px;
-          width: 8px; height: 8px; border-radius: 50%;
-          background: #f43f5e; border: 1.5px solid #ffffff;
-        }
         .notif-count {
           position: absolute; top: -4px; right: -4px;
           min-width: 18px; height: 18px; border-radius: 100px;
@@ -397,8 +460,11 @@ export default function Header() {
         .dropdown-divider { height: 1px; background: #f1f5f9; }
 
         @media (max-width: 700px) {
-          .header-search-box { display: none; }
           .dash-header { padding: 0.85rem 1.2rem; }
+          .header-search-box { min-width: 140px; }
+          .search-dropdown {
+            position: fixed; top: 64px; left: 1rem; right: 1rem; min-width: 0;
+          }
           .notif-panel { width: 300px; right: -60px; }
         }
       `}</style>
@@ -412,17 +478,51 @@ export default function Header() {
         {/* Right — icons */}
         <div className="header-right">
 
-          {/* Search */}
-          <div className="header-search-box">
-            <SearchIcon />
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="Search pages... (press Enter)"
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              onKeyDown={handleSearch}
-            />
+          {/* People search */}
+          <div className="header-search-wrap" ref={searchRef}>
+            <div className="header-search-box">
+              <SearchIcon />
+              <input
+                type="text"
+                placeholder="Search people..."
+                value={query}
+                onChange={handleSearchInput}
+                onFocus={() => query.trim().length >= 2 && setSearchOpen(true)}
+              />
+            </div>
+
+            {searchOpen && query.trim().length >= 2 && (
+              <div className="search-dropdown">
+                <div className="search-dropdown-header">People</div>
+
+                {searching ? (
+                  <div className="search-loading">Searching...</div>
+                ) : results.length === 0 ? (
+                  <div className="search-empty">No users found for "{query}"</div>
+                ) : (
+                  results.map((u) => (
+                    <div
+                      key={u.id}
+                      className={`search-result-item${u.username ? "" : " no-username"}`}
+                      onClick={() => handleResultClick(u.username)}
+                    >
+                      <div className="search-result-avatar">{getInitials(u.name)}</div>
+                      <div className="search-result-info">
+                        <div className="search-result-name">{u.name}</div>
+                        <div className="search-result-handle">
+                          {u.username ? `@${u.username}` : "No username set"}
+                        </div>
+                      </div>
+                      {!u.isPublic && (
+                        <div className="search-result-private">
+                          <LockIcon /> Private
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Notifications */}
