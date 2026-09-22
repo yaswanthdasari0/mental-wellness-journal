@@ -7,13 +7,21 @@ import SessionSelector from "@/components/meditation/SessionSelector";
 import TimerCard from "@/components/meditation/TimerCard";
 import BreathingGuide from "@/components/meditation/BreathingGuide";
 import SessionHistory from "@/components/meditation/SessionHistory";
-import { MeditationSession } from "@/services/meditation";
+import { saveSession, MeditationSession } from "@/services/meditation";
 
 export default function MeditationPage() {
   const [selectedSeconds, setSelectedSeconds] = useState(600);
-  // timerRunning is now driven by TimerCard via onRunningChange
   const [timerRunning, setTimerRunning]       = useState(false);
+  // This is the key fix — page owns the session save and passes result to history
   const [latestSession, setLatestSession]     = useState<MeditationSession | null>(null);
+
+  // Called by TimerCard when countdown reaches 0
+  // Page saves the session, gets back the saved record, passes it to SessionHistory
+  const handleSessionComplete = async (durationMinutes: number) => {
+    const session = await saveSession(durationMinutes);
+    setLatestSession(session);   // ← SessionHistory watches this prop
+    setTimerRunning(false);
+  };
 
   return (
     <>
@@ -36,7 +44,7 @@ export default function MeditationPage() {
       <div className="meditation-layout">
         <Sidebar />
         <div className="meditation-main">
-          <Header name="Akash" />
+          <Header />
           <div className="meditation-content">
             <h1 className="meditation-page-title">Meditation</h1>
             <p className="meditation-page-subtext">Take a moment for yourself.</p>
@@ -54,15 +62,15 @@ export default function MeditationPage() {
                 <TimerCard
                   totalSeconds={selectedSeconds}
                   onRunningChange={setTimerRunning}
-                  onComplete={() => setTimerRunning(false)}
+                  onComplete={handleSessionComplete}
                 />
 
-                {/* Now correctly receives live running state from TimerCard */}
                 <BreathingGuide active={timerRunning} />
               </div>
 
               <div className="meditation-right">
                 <div className="meditation-section-heading">History</div>
+                {/* newSession updates whenever a session completes */}
                 <SessionHistory newSession={latestSession} />
               </div>
             </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { saveSession } from "@/services/meditation";
 
 function fmt(s: number) {
   const m   = Math.floor(s / 60).toString().padStart(2, "0");
@@ -38,15 +37,14 @@ const STROKE = 10;
 const R      = (SIZE - STROKE) / 2;
 const CIRC   = 2 * Math.PI * R;
 
-export default function TimerCard({
-  totalSeconds,
-  onRunningChange, // ← tells parent whether timer is running (for BreathingGuide)
-  onComplete,
-}: {
-  totalSeconds: number;
+interface TimerCardProps {
+  totalSeconds:    number;
   onRunningChange?: (running: boolean) => void;
-  onComplete?: () => void;
-}) {
+  // Page calls this when timer completes — page handles saving
+  onComplete?:     (durationMinutes: number) => Promise<void>;
+}
+
+export default function TimerCard({ totalSeconds, onRunningChange, onComplete }: TimerCardProps) {
   const [remaining, setRemaining] = useState(totalSeconds);
   const [running, setRunning]     = useState(false);
   const [done, setDone]           = useState(false);
@@ -64,7 +62,7 @@ export default function TimerCard({
     if (intervalRef.current) clearInterval(intervalRef.current);
   }, [totalSeconds]);
 
-  // Notify parent when running changes — this is what controls BreathingGuide
+  // Notify parent when running state changes
   useEffect(() => {
     onRunningChange?.(running);
   }, [running]);
@@ -78,6 +76,7 @@ export default function TimerCard({
             clearInterval(intervalRef.current!);
             setRunning(false);
             setDone(true);
+            // Trigger save via parent
             handleComplete();
             return 0;
           }
@@ -91,12 +90,13 @@ export default function TimerCard({
   }, [running]);
 
   const handleComplete = async () => {
+    if (!onComplete) return;
     setSaving(true);
     setSaveError("");
     try {
-      const durationMinutes = Math.round(totalSeconds / 60);
-      await saveSession(durationMinutes);
-      onComplete?.();
+      const durationMinutes = Math.max(1, Math.round(totalSeconds / 60));
+      // Let the page handle the actual API call and state update
+      await onComplete(durationMinutes);
     } catch (err: any) {
       setSaveError(err.message || "Failed to save session.");
     } finally {
@@ -169,7 +169,7 @@ export default function TimerCard({
           </svg>
           <div className="timer-text">
             <div className="timer-digits">{fmt(remaining)}</div>
-            {done && !saving && <div className="timer-done-text">Complete</div>}
+            {done && !saving && <div className="timer-done-text">Complete ✓</div>}
             {saving && <div className="timer-saving-text">Saving...</div>}
           </div>
         </div>
