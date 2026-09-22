@@ -10,18 +10,30 @@ function FlameIcon() {
 
 interface StreakCardProps {
   streak: number;
+  completedToday?: boolean;
   loading?: boolean;
 }
 
-export default function StreakCard({ streak, loading = false }: StreakCardProps) {
-  // Build last 7 days display
+export default function StreakCard({ streak, completedToday = true, loading = false }: StreakCardProps) {
+  // Build last 7 days display.
+  // The streak counts backward from the most recent completed day, which is
+  // "today" once it's ticked, or "yesterday" while today is still open —
+  // same rule as the backend's calculateStreak. So the highlighted block of
+  // days ends at yesterday until completedToday flips true.
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
+    const isToday = i === 6;
+
+    // Index (from the end) of the most recent day the streak includes:
+    // 0 = today if completed today, 1 = today if not yet completed.
+    const endOffset = completedToday ? 0 : 1;
+    const done = i >= 7 - streak - endOffset && i <= 6 - endOffset;
+
     return {
-      label:    ["S","M","T","W","T","F","S"][d.getDay()],
-      // A day is "done" if it falls within the current streak window
-      done:     i >= 7 - streak,
+      label: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()],
+      done,
+      isToday,
     };
   });
 

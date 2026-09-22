@@ -7,6 +7,7 @@ export interface HabitCompletion { id: string; completedAt: string; habitId: str
 export interface Habit {
   id: string; name: string; createdAt: string; userId: string;
   completions: HabitCompletion[]; completedToday: boolean; streak: number;
+  longestStreak?: number;
 }
 export interface CreateHabitData { name: string; }
 export interface UpdateHabitData { name: string; }
