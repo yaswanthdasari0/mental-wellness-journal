@@ -10,6 +10,8 @@ import MoodChart from "@/components/dashboard/MoodChart";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import { getDashboardSummary, DashboardSummary } from "@/services/dashboard";
 import { getUser } from "@/services/auth";
+import PeoplePanel from "@/components/social/PeoplePanel";
+
 
 function PlusIcon() {
   return (
@@ -193,10 +195,11 @@ export default function DashboardPage() {
             {/* Chart + Activity */}
             <div className="lower-grid">
               <MoodChart />
-              <RecentActivity
-                activities={data?.recentActivity ?? []}
-                loading={loading}
-              />
+              
+              <div className="meditation-right">
+                  <PeoplePanel />
+                  <RecentActivity activities={data?.recentActivity ?? []} loading={loading} />
+              </div>
             </div>
           </div>
         </div>
