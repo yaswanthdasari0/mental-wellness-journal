@@ -8,12 +8,14 @@ import { getAvatar } from "@/services/avatar";
 
 
 const NAV_ITEMS = [
-  { href: "/dashboard",  label: "Dashboard",   icon: "home"   },
-  { href: "/mood",       label: "Mood Tracker", icon: "smile"  },
-  { href: "/journal",    label: "Journal",      icon: "book"   },
-  { href: "/gratitude",  label: "Gratitude",    icon: "heart"  },
-  { href: "/habits",     label: "Habits",       icon: "flame"  },
-  { href: "/meditation", label: "Meditation",   icon: "circle" },
+  { href: "/dashboard",  label: "Dashboard",   icon: "home"     },
+  { href: "/mood",       label: "Mood Tracker", icon: "smile"    },
+  { href: "/journal",    label: "Journal",      icon: "book"     },
+  { href: "/gratitude",  label: "Gratitude",    icon: "heart"    },
+  { href: "/habits",     label: "Habits",       icon: "flame"    },
+  { href: "/meditation", label: "Meditation",   icon: "circle"   },
+  { href: "/profile",    label: "Profile",      icon: "user"     },
+  { href: "/settings",   label: "Settings",     icon: "settings" },
 ];
 
 function Icon({ name }: { name: string }) {
