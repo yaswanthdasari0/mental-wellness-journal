@@ -24,6 +24,35 @@ export const getUser = (): AuthResponse["user"] | null => {
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 };
+export const getAvatar = (email?: string): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const key = email ?? getUser()?.email;
+    if (!key) return null;
+    return localStorage.getItem(`mindspace_avatar:${key}`);
+  } catch {
+    return null;
+  }
+};
+
+export const saveAvatar = (dataUrl: string, email?: string): void => {
+  if (typeof window === "undefined") return;
+  try {
+    const key = email ?? getUser()?.email;
+    if (!key) return;
+    localStorage.setItem(`mindspace_avatar:${key}`, dataUrl);
+    window.dispatchEvent(new Event("profile-updated"));
+  } catch {}
+};
+
+export const removeAvatar = (email?: string): void => {
+  if (typeof window === "undefined") return;
+  try {
+    const key = email ?? getUser()?.email;
+    if (!key) return;
+    localStorage.removeItem(`mindspace_avatar:${key}`);
+  } catch {}
+};
 
 export const logout = (): void => {
   localStorage.removeItem("mindspace_token");
