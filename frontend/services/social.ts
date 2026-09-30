@@ -12,14 +12,25 @@ export interface PublicProfile {
   id: string; name: string; username: string | null;
   bio: string | null; isPublic: boolean; private?: boolean;
   memberSince?: string; isFollowing?: boolean; isOwnProfile?: boolean;
-  hasPendingRequest?: boolean;
+  hasPendingRequest?: boolean; isBlockedByMe?: boolean;
   followerCount?: number; followingCount?: number;
   stats?: { journals: number; habits: number; meditations: number };
+  activity?: {
+    journals: { id: string; title: string; preview: string; createdAt: string }[];
+    moods:    { id: string; mood: string; note?: string | null; createdAt: string }[];
+    habits:   { id: string; name: string; completionCount: number }[];
+  };
 }
 
 export interface FollowRequest {
   id: string; createdAt: string; status: string;
   sender: SocialUser;
+}
+
+export interface AppNotification {
+  id: string; type: string; message: string;
+  read: boolean; createdAt: string;
+  senderName?: string | null; senderUsername?: string | null;
 }
 
 const h = () => ({
@@ -84,6 +95,38 @@ export const respondToRequest = async (requestId: string, action: "accept" | "re
   const json = await res.json();
   if (!res.ok) throw new Error(json.message);
   return json;
+};
+
+export const getNotifications = async (): Promise<{ notifications: AppNotification[]; unreadCount: number }> => {
+  const res = await fetchWithAuth(`${API_BASE}/api/social/notifications`, { method: "GET", headers: h() });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message);
+  return json;
+};
+
+export const markNotificationsRead = async (): Promise<void> => {
+  await fetchWithAuth(`${API_BASE}/api/social/notifications/read`, { method: "POST", headers: h() });
+};
+
+export const blockUser = async (userId: string) => {
+  const res = await fetchWithAuth(`${API_BASE}/api/social/block/${userId}`, { method: "POST", headers: h() });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message);
+  return json;
+};
+
+export const unblockUser = async (userId: string) => {
+  const res = await fetchWithAuth(`${API_BASE}/api/social/block/${userId}`, { method: "DELETE", headers: h() });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message);
+  return json;
+};
+
+export const getBlockedUsers = async (): Promise<SocialUser[]> => {
+  const res = await fetchWithAuth(`${API_BASE}/api/social/blocked`, { method: "GET", headers: h() });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message);
+  return json.users;
 };
 
 export const getSuggestions = async (): Promise<SocialUser[]> => {
